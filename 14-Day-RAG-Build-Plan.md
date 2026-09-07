@@ -2,7 +2,7 @@
 
 **Goal:** A deployed RAG app with measured retrieval quality, ready to defend in a product-company interview.
 
-**Stack:** FastAPI · PostgreSQL + pgvector · Redis · sentence-transformers · Gemini · React (Vite)
+**Stack:** FastAPI · PostgreSQL + pgvector · Redis · sentence-transformers · Anthropic Claude · React (Vite)
 
 **Daily rhythm (~6–7 hrs):**
 | Block | Time | What |
@@ -57,12 +57,12 @@ Target: a live URL by end of Day 8. Ugly is fine. Working is not optional.
 - FastAPI's dependency injection: how `Depends()` chains and where auth plugs in
 
 **Build**
-- [ ] Install `passlib[bcrypt] python-jose[cryptography]`
-- [ ] `core/security.py` — `hash_password`, `verify_password`, `create_access_token`, `decode_token`
-- [ ] `models/user.py` — `id`, `email` (unique), `hashed_password`, `is_admin`, `created_at`
-- [ ] `schemas/user.py` — `UserCreate`, `UserOut` (**never expose `hashed_password`**), `Token`
-- [ ] `routes/auth.py` — `POST /auth/register`, `POST /auth/login`, `GET /auth/me`
-- [ ] `get_current_user()` dependency — decodes JWT, loads user, raises 401 on failure
+- [x] Install `passlib[bcrypt] python-jose[cryptography]`
+- [x] `core/security.py` — `hash_password`, `verify_password`, `create_access_token`, `decode_token`
+- [x] `models/user.py` — `id`, `email` (unique), `hashed_password`, `is_admin`, `created_at`
+- [x] `schemas/user.py` — `UserCreate`, `UserOut` (**never expose `hashed_password`**), `Token`
+- [x] `routes/auth.py` — `POST /auth/register`, `POST /auth/login`, `GET /auth/me`
+- [x] `get_current_user()` dependency — decodes JWT, loads user, raises 401 on failure
 
 **Verify:** Register → login → copy token → authorize in `/docs` → `/auth/me` returns your user. Duplicate email returns 400. Wrong password returns 401.
 
@@ -80,13 +80,13 @@ Target: a live URL by end of Day 8. Ugly is fine. Working is not optional.
 - MIME type vs file extension — why checking extension alone is unsafe
 
 **Build**
-- [ ] Install `pymupdf`
-- [ ] `models/document.py` — `documents` table (`status`, `total_chunks`, `file_path`, `page_count`)
-- [ ] `models/chunk.py` — `document_chunks` with `chunk_text`, `chunk_index`, **`page_number`**, `token_count`
-- [ ] `utils/pdf_parser.py` — `extract_pages(path) -> list[tuple[page_num, text]]`
-- [ ] `utils/chunker.py` — `chunk_pages(pages, size=500, overlap=50)`, **each chunk keeps its page number**
-- [ ] `routes/documents.py` — `POST /documents/upload` validating `.pdf` + MIME + ≤10 MB
-- [ ] `GET /documents/`, `GET /documents/{id}`, `DELETE /documents/{id}` — all with ownership checks
+- [x] Install `pymupdf`
+- [x] `models/document.py` — `documents` table (`status`, `total_chunks`, `file_path`, `page_count`)
+- [x] `models/chunk.py` — `document_chunks` with `chunk_text`, `chunk_index`, **`page_number`**, `token_count`
+- [x] `utils/pdf_parser.py` — `extract_pages(path) -> list[tuple[page_num, text]]`
+- [x] `utils/chunker.py` — `chunk_pages(pages, size=500, overlap=50)`, **each chunk keeps its page number**
+- [x] `routes/documents.py` — `POST /documents/upload` validating `.pdf` + MIME + ≤10 MB
+- [x] `GET /documents/`, `GET /documents/{id}`, `DELETE /documents/{id}` — all with ownership checks
 
 > ⚠️ **Chunk within pages, not across them.** Page numbers must survive to Day 6's citations. Retrofitting this on Day 9 is painful.
 
@@ -106,13 +106,13 @@ Target: a live URL by end of Day 8. Ugly is fine. Working is not optional.
 - Why background work matters: a 30-second upload request will time out
 
 **Build**
-- [ ] Install `sentence-transformers`
-- [ ] `services/embedding_service.py` — load model **once at module level**, `embed_text`, `embed_many`
-- [ ] `embedding` column as `Vector(384)`, `NOT NULL`
-- [ ] HNSW index: `CREATE INDEX ON document_chunks USING hnsw (embedding vector_cosine_ops);`
-- [ ] `services/document_service.py` — `process_document()`: extract → chunk → batch-embed → bulk insert → `status='ready'`
-- [ ] Wire to FastAPI `BackgroundTasks`
-- [ ] **`try/except` around the whole task → `status='failed'` + store `error_message`**
+- [x] Install `sentence-transformers`
+- [x] `services/embedding_service.py` — load model **once at module level**, `embed_text`, `embed_many`
+- [x] `embedding` column as `Vector(384)`, `NOT NULL`
+- [x] HNSW index: `CREATE INDEX ON document_chunks USING hnsw (embedding vector_cosine_ops);`
+- [x] `services/document_service.py` — `process_document()`: extract → chunk → batch-embed → bulk insert → `status='ready'`
+- [x] Wire to FastAPI `BackgroundTasks`
+- [x] **`try/except` around the whole task → `status='failed'` + store `error_message`**
 
 **Verify:** Upload → response returns instantly → after ~10s `status='ready'` → `SELECT COUNT(*) FROM document_chunks` matches `total_chunks`. Then deliberately upload a corrupt PDF and confirm `status='failed'`, not a permanent hang.
 
@@ -130,11 +130,11 @@ Target: a live URL by end of Day 8. Ugly is fine. Working is not optional.
 - Why SQL string concatenation is unsafe and parameterised queries aren't
 
 **Build**
-- [ ] `services/rag_service.py` — `search_chunks(db, doc_id, qvec, k=5)` using `ORDER BY embedding <=> CAST(:qvec AS vector)`
-- [ ] `build_prompt(question, chunks)` — strict grounding template with `[Chunk N]` markers
-- [ ] `services/llm_service.py` — Gemini call (**check the current model name; don't copy an old one**)
-- [ ] `models/chat.py` — `chat_sessions` + `chat_messages` (`role`, `content`, `source_chunks` JSONB)
-- [ ] `routes/chat.py` — `POST /chat/ask`
+- [x] `services/rag_service.py` — `search_chunks(db, doc_id, qvec, k=5)` using `ORDER BY embedding <=> CAST(:qvec AS vector)`
+- [x] `build_prompt(question, chunks)` — strict grounding template with `[Chunk N]` markers
+- [x] `services/llm_service.py` — Anthropic Claude call (`claude-sonnet-4-6`; override via `ANTHROPIC_MODEL`)
+- [x] `models/chat.py` — `chat_sessions` + `chat_messages` (`role`, `content`, `source_chunks` JSONB)
+- [x] `routes/chat.py` — `POST /chat/ask`
 
 > 🔒 **Ownership check is line 1 of the handler.** Before rate limiting. Before the cache read. `if doc.user_id != user.id: raise HTTPException(404)`. This is the IDOR fix — and a Day 14 talking point.
 
@@ -154,13 +154,13 @@ Target: a live URL by end of Day 8. Ugly is fine. Working is not optional.
 - HTTP 429 and why rate limiting is cost control, not just abuse control
 
 **Build**
-- [ ] Upstash Redis created; `core/redis_client.py` (install `redis`)
-- [ ] Answer cache — key `answer:{doc_id}:{sha256(question)}`, TTL 3600
-- [ ] Embedding cache — key `embed:{sha256(question)}`, TTL 86400
-- [ ] Rate limit — key `ratelimit:{user_id}:{hour}`, `INCR`, limit 20/hr → 429
-- [ ] Return `sources: [{chunk_index, page_number, chunk_text}]` with every answer
-- [ ] Persist both user and assistant messages; assistant row stores `source_chunks`
-- [ ] `GET /chat/sessions`, `GET /chat/sessions/{id}`, `DELETE /chat/sessions/{id}`
+- [x] Upstash Redis created; `core/redis_client.py` (install `redis`)
+- [x] Answer cache — key `answer:{doc_id}:{sha256(question)}`, TTL 3600
+- [x] Embedding cache — key `embed:{sha256(question)}`, TTL 86400
+- [x] Rate limit — key `ratelimit:{user_id}:{hour}`, `INCR`, limit 20/hr → 429
+- [x] Return `sources: [{chunk_index, page_number, chunk_text}]` with every answer
+- [x] Persist both user and assistant messages; assistant row stores `source_chunks`
+- [x] `GET /chat/sessions`, `GET /chat/sessions/{id}`, `DELETE /chat/sessions/{id}`
 
 **Verify:** Same question twice — second is visibly instant. 21st query returns 429. Response includes correct page numbers. History persists across restarts.
 
@@ -178,13 +178,13 @@ Target: a live URL by end of Day 8. Ugly is fine. Working is not optional.
 - Polling vs WebSockets, and why polling wins for this use case
 
 **Build**
-- [ ] `npm create vite@latest` (React), install `react-router-dom axios`
-- [ ] `api/axios.js` — instance + JWT request interceptor + 401 response interceptor
-- [ ] `context/AuthContext.jsx` — user, token, `login()`, `logout()`
-- [ ] Pages: `Login`, `Register`, `Dashboard`, `Upload`, `Chat/:docId`
-- [ ] Protected route wrapper redirecting to `/login`
-- [ ] Dashboard polls `GET /documents/{id}` every 3s while `status='processing'`
-- [ ] `ChatMessage.jsx` — bubbles + expandable citations showing page + chunk text
+- [x] `npm create vite@latest` (React), install `react-router-dom axios`
+- [x] `api/axios.js` — instance + JWT request interceptor + 401 response interceptor
+- [x] `context/AuthContext.jsx` — user, token, `login()`, `logout()`
+- [x] Pages: `Login`, `Register`, `Dashboard`, `Upload`, `Chat/:docId`
+- [x] Protected route wrapper redirecting to `/login`
+- [x] Dashboard polls `GET /documents/{id}` every 3s while `status='processing'`
+- [x] `ChatMessage.jsx` — bubbles + expandable citations showing page + chunk text
 
 > Plain CSS only today. No Tailwind setup, no component library. Polish is Day 13.
 

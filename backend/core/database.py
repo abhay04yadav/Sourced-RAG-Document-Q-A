@@ -7,7 +7,8 @@ after the response so connections return to the pool cleanly.
 
 from collections.abc import Generator
 
-from sqlalchemy import create_engine
+from pgvector.psycopg2 import register_vector
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from core.config import settings
@@ -18,6 +19,13 @@ engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,
 )
+
+
+@event.listens_for(engine, "connect")
+def _register_vector(dbapi_connection, _connection_record) -> None:
+    """Register pgvector adapters on every new DB-API connection."""
+    register_vector(dbapi_connection)
+
 
 # Factory for request-scoped sessions (autocommit/autoflush off = explicit control)
 SessionLocal = sessionmaker(

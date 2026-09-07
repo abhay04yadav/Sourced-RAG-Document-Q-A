@@ -1,0 +1,21 @@
+{
+  "notes": "Retrieval eval for a large Harry Potter omnibus PDF. A question is a 'hit' at k if any of the top-k retrieved chunks contains all expected_keywords (case-insensitive substring). Pages are unknown across editions, so we score on keywords rather than expected_page. Unanswerable items are excluded from hit metrics and used to sanity-check refusals.",
+  "questions": [
+    { "id": "q01", "question": "Who is known as the Boy Who Lived?", "expected_keywords": ["boy who lived"] },
+    { "id": "q02", "question": "What is the name of Harry's pet owl?", "expected_keywords": ["hedwig"] },
+    { "id": "q03", "question": "Who teaches Potions at Hogwarts?", "expected_keywords": ["snape"] },
+    { "id": "q04", "question": "Which house is Harry sorted into?", "expected_keywords": ["gryffindor"] },
+    { "id": "q05", "question": "What is the name of the wizard prison?", "expected_keywords": ["azkaban"] },
+    { "id": "q06", "question": "Who is the headmaster of Hogwarts?", "expected_keywords": ["dumbledore"] },
+    { "id": "q07", "question": "What sport is played on broomsticks?", "expected_keywords": ["quidditch"] },
+    { "id": "q08", "question": "What was Lord Voldemort's original name?", "expected_keywords": ["riddle"] },
+    { "id": "q09", "question": "What is the name of the unbeatable wand?", "expected_keywords": ["elder wand"] },
+    { "id": "q10", "question": "Who is Harry's godfather?", "expected_keywords": ["sirius"] },
+    { "id": "q11", "question": "What creature is the monster of the Chamber of Secrets?", "expected_keywords": ["basilisk"] },
+    { "id": "q12", "question": "What spell is used to disarm an opponent?", "expected_keywords": ["expelliarmus"] },
+    { "id": "q13", "question": "Who is the cleverest witch and Harry's close friend?", "expected_keywords": ["hermione"] },
+    { "id": "q14", "question": "How did Voldemort finally die in the last battle?", "expected_keywords": ["killing curse"] },
+    { "id": "q15", "question": "What is the potion that grants luck?", "expected_keywords": ["felix felicis"] },
+    { "id": "q16", "question": "What is the recipe for a chocolate sponge cake?", "expected_keywords": ["chocolate sponge"], "unanswerable": true }
+  ]
+}

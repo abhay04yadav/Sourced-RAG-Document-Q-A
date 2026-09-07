@@ -11,8 +11,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from api.routes import auth, chat, documents
 from core.config import settings
-from core.database import get_db
+from core.database import Base, engine, get_db
+
+# Import models so they register on Base.metadata before create_all.
+import models  # noqa: F401
 
 app = FastAPI(title=settings.APP_NAME)
 
@@ -24,6 +28,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Create tables that do not exist yet (users, documents, chunks, chat).
+Base.metadata.create_all(bind=engine)
+
+# Ensure upload root exists for Day 3 PDF storage.
+settings.upload_path.mkdir(parents=True, exist_ok=True)
+
+app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(documents.router, prefix="/documents", tags=["documents"])
+app.include_router(chat.router, prefix="/chat", tags=["chat"])
 
 
 @app.get("/")
@@ -37,12 +51,18 @@ def root() -> dict[str, str]:
 
 
 @app.get("/health")
-def health(db: Session = Depends(get_db)) -> dict[str, str]:
+def health(db: Session = Depends(get_db)) -> dict:
     """
     Readiness probe: confirms the API can reach Postgres.
 
     Runs `SELECT 1` through the request-scoped session. Useful for Day 8 deploy
     checks; the plan's Day 1 contract remains `GET /` → `{"status":"ok"}`.
     """
+    from api.routes.documents import _max_upload_bytes
+
     db.execute(text("SELECT 1"))
-    return {"status": "ok", "database": "connected"}
+    return {
+        "status": "ok",
+        "database": "connected",
+        "max_upload_bytes": _max_upload_bytes(),
+    }

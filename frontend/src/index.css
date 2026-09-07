@@ -1,0 +1,296 @@
+:root {
+  color-scheme: light;
+  --bg: #f6f4ef;
+  --surface: #ffffff;
+  --ink: #1c1917;
+  --muted: #78716c;
+  --accent: #0f766e;
+  --accent-ink: #ffffff;
+  --border: #e7e5e4;
+  --danger: #b91c1c;
+  --user: #ccfbf1;
+  --assistant: #ffffff;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+a {
+  color: var(--accent);
+}
+
+code {
+  font-size: 0.9em;
+}
+
+.page,
+.auth-page {
+  max-width: 840px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.auth-page {
+  max-width: 420px;
+  padding-top: 4rem;
+}
+
+.center {
+  text-align: center;
+  padding: 3rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 0.875rem;
+}
+
+.error {
+  color: var(--danger);
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.topbar h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.card-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.card-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.card-form input[type="email"],
+.card-form input[type="password"],
+.card-form input[type="text"],
+.card-form input[type="file"],
+.ask-form input {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+}
+
+.button,
+button,
+.ask-form button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.button.ghost,
+button.ghost {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--border);
+}
+
+.button.small,
+button.small {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.85rem;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.doc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.doc-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+}
+
+.doc-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  text-transform: lowercase;
+  border: 1px solid var(--border);
+  background: #fafaf9;
+}
+
+.badge-processing {
+  background: #fef3c7;
+  border-color: #fcd34d;
+}
+
+.badge-ready {
+  background: #d1fae5;
+  border-color: #6ee7b7;
+}
+
+.badge-failed {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.chat-page {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 2rem);
+}
+
+.chat-thread {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.bubble-row {
+  display: flex;
+}
+
+.bubble-row.user {
+  justify-content: flex-end;
+}
+
+.bubble-row.assistant {
+  justify-content: flex-start;
+}
+
+.bubble {
+  max-width: min(100%, 560px);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+}
+
+.bubble-user {
+  background: var(--user);
+}
+
+.bubble-assistant {
+  background: var(--assistant);
+}
+
+.bubble-role {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bubble-text {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.citations {
+  margin-top: 0.65rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+}
+
+.linkish {
+  background: none;
+  border: none;
+  color: var(--accent);
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.citation-list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.citation-text {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.ask-form {
+  display: flex;
+  gap: 0.5rem;
+  position: sticky;
+  bottom: 0;
+  background: var(--bg);
+  padding: 0.5rem 0 0;
+}
+
+.ask-form input {
+  flex: 1;
+}
+
+@media (max-width: 640px) {
+  .doc-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
