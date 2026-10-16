@@ -357,3 +357,42 @@ The embedding model changed, so old vectors are incompatible.
 BGE-small + a cross-encoder + torch can exceed a free tier's RAM. If OOM on
 deploy: keep hybrid + neighbor expansion and disable the reranker (document it),
 or move embeddings/rerank to a hosted API — same escape hatch as the plan's Day 11.
+
+---
+
+## Health check + fixes (2026-10-16)
+
+| Issue | Fix |
+|---|---|
+| A PDF with no extractable text (scanned/image-only) was marked `ready` with 0 chunks, so every question silently refused | `process_document` now raises → `status='failed'` with an OCR-not-supported message. Existing bad row marked `failed`. |
+| Embedding cache key `embed:{sha256(q)}` didn't include the model, so after the MiniLM → BGE switch a cached MiniLM vector could be searched against BGE chunks | Key is now `embed:{model_hash}:{sha256(q)}` |
+| One pre-Day-4 doc stuck in `processing` forever | Marked `failed`; reprocess or delete |
+| `eval/__pycache__/*.pyc` committed | Untracked (`.gitignore` already covers it) |
+| pgvector Day 1 check pending | Verified: `vector` 0.8.2 present |
+| Retrieval eval table empty | Run 1 recorded in `eval/RESULTS.md` |
+
+## LLM switch: Anthropic → OpenAI (2026-10-16)
+
+`services/llm_service.py` now uses the `openai` SDK (Chat Completions). Config: `OPENAI_API_KEY`, `OPENAI_MODEL` (default `gpt-4o-mini`). It uses `max_completion_tokens` so reasoning models (e.g. the `gpt-5` family) work too. Prompts, refusal message and the rest of the pipeline are unchanged. Earlier Day 5 notes that mention Claude are historical.
+
+## Live verification — Days 2–6 (2026-10-16)
+
+Real server, real OpenAI (`gpt-4o-mini`), real Upstash Redis, Supabase Postgres.
+
+| Check | Result |
+|---|---|
+| Upload → `ready` | Pass |
+| Text-less PDF → `failed` with OCR message | Pass |
+| In-doc question → grounded answer with `[Chunk N]` | Pass ("port 7443 [Chunk 0]") |
+| Citations carry `page_number` | Pass |
+| Same question twice → `cached: true` | Pass (6.4 s → 1.6 s) |
+| Absent question → exact refusal message | Pass |
+| Other user's `document_id` → 404 | Pass |
+| History persisted (`GET /chat/sessions/{id}`) | Pass (6 messages) |
+| 21st ask in an hour → 429 | Pass |
+
+Bugs hit while verifying:
+- **Upstash `redis://` → "Connection closed by server".** Upstash requires TLS (`rediss://`). Fixed in `.env`, and `redis_client` now upgrades `*.upstash.io` URLs automatically.
+- **`uvicorn.exe` fails silently** because the em dash (—) in the repo path breaks pip's exe launchers. Use `venv\Scripts\python.exe -m uvicorn main:app --reload`.
+
+Known limitation spotted: the section-aware chunker can merge short pages into one chunk, and the chunk keeps its *starting* page number. A fact from page 2 can therefore be cited as page 1 on small docs.

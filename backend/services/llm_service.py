@@ -1,48 +1,45 @@
-"""Anthropic Claude helpers: grounded answers + query rewriting."""
+"""OpenAI helpers: grounded answers + query rewriting."""
 
 from __future__ import annotations
 
-from anthropic import Anthropic
+from openai import OpenAI
 
 from core.config import settings
 
-_client: Anthropic | None = None
+_client: OpenAI | None = None
 
 
-def _get_client() -> Anthropic:
+def _get_client() -> OpenAI:
     """Lazy Client so missing keys fail at ask-time, not import-time."""
     global _client
-    if not settings.ANTHROPIC_API_KEY:
+    if not settings.OPENAI_API_KEY:
         raise RuntimeError(
-            "ANTHROPIC_API_KEY is empty. Set it in the repo-root .env "
-            "(https://console.anthropic.com/settings/keys)."
+            "OPENAI_API_KEY is empty. Set it in the repo-root .env "
+            "(https://platform.openai.com/api-keys)."
         )
     if _client is None:
-        _client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+        _client = OpenAI(api_key=settings.OPENAI_API_KEY)
     return _client
 
 
 def _complete(prompt: str, max_tokens: int) -> str:
-    """Single-turn Claude completion returning concatenated text blocks."""
+    """Single-turn chat completion returning the message text."""
     client = _get_client()
-    message = client.messages.create(
-        model=settings.ANTHROPIC_MODEL,
-        max_tokens=max_tokens,
+    response = client.chat.completions.create(
+        model=settings.OPENAI_MODEL,
+        # max_completion_tokens works for both GPT-4o-style and reasoning models.
+        max_completion_tokens=max_tokens,
         messages=[{"role": "user", "content": prompt}],
     )
-    parts: list[str] = []
-    for block in message.content:
-        text = getattr(block, "text", None)
-        if text:
-            parts.append(text)
-    return "".join(parts).strip()
+    content = response.choices[0].message.content if response.choices else None
+    return (content or "").strip()
 
 
 def generate_answer(prompt: str) -> str:
-    """Call Claude with the grounded prompt; return plain text."""
+    """Call the LLM with the grounded prompt; return plain text."""
     answer = _complete(prompt, max_tokens=2048)
     if not answer:
-        raise RuntimeError("Anthropic returned an empty response")
+        raise RuntimeError("OpenAI returned an empty response")
     return answer
 
 

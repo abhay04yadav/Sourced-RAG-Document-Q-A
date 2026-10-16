@@ -95,14 +95,14 @@ class Settings(BaseSettings):
         description="Instruction prefix prepended to query text for BGE-style models",
     )
 
-    # Day 5 — Anthropic Claude RAG
-    ANTHROPIC_API_KEY: str = Field(
+    # Day 5 — OpenAI LLM for RAG
+    OPENAI_API_KEY: str = Field(
         default="",
-        description="Anthropic API key for Claude",
+        description="OpenAI API key",
     )
-    ANTHROPIC_MODEL: str = Field(
-        default="claude-sonnet-4-6",
-        description="Claude model id for grounded answers",
+    OPENAI_MODEL: str = Field(
+        default="gpt-4o-mini",
+        description="OpenAI chat model id for grounded answers + query rewriting",
     )
     RAG_TOP_K: int = Field(
         default=5,

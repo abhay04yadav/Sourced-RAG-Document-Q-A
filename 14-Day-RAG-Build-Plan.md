@@ -2,7 +2,7 @@
 
 **Goal:** A deployed RAG app with measured retrieval quality, ready to defend in a product-company interview.
 
-**Stack:** FastAPI · PostgreSQL + pgvector · Redis · sentence-transformers · Anthropic Claude · React (Vite)
+**Stack:** FastAPI · PostgreSQL + pgvector · Redis · sentence-transformers · OpenAI · React (Vite)
 
 **Daily rhythm (~6–7 hrs):**
 | Block | Time | What |
@@ -31,15 +31,15 @@ Target: a live URL by end of Day 8. Ugly is fine. Working is not optional.
 - What pgvector is: a Postgres extension adding a `vector` column type + distance operators
 
 **Build**
-- [ ] `venv` + install: `fastapi uvicorn sqlalchemy psycopg2-binary pydantic-settings python-dotenv pgvector`
-- [ ] Folder structure per Section 4.1 of your guide (`api/routes`, `core`, `models`, `schemas`, `services`, `utils`)
-- [ ] `core/config.py` — Pydantic `BaseSettings` reading `.env`
-- [ ] `core/database.py` — engine, `SessionLocal`, `Base`, `get_db()` dependency
-- [ ] `main.py` — app instance, CORS middleware, `GET /` health route
-- [ ] Supabase project created; `CREATE EXTENSION IF NOT EXISTS vector;` run in SQL editor
-- [ ] `.gitignore` with `.env`, `__pycache__`, `venv/`, `node_modules/`
-- [ ] `.env.example` committed with empty values
-- [ ] Git repo initialised, first commit pushed
+- [x] `venv` + install: `fastapi uvicorn sqlalchemy psycopg2-binary pydantic-settings python-dotenv pgvector`
+- [x] Folder structure per Section 4.1 of your guide (`api/routes`, `core`, `models`, `schemas`, `services`, `utils`)
+- [x] `core/config.py` — Pydantic `BaseSettings` reading `.env`
+- [x] `core/database.py` — engine, `SessionLocal`, `Base`, `get_db()` dependency
+- [x] `main.py` — app instance, CORS middleware, `GET /` health route
+- [x] Supabase project created; `CREATE EXTENSION IF NOT EXISTS vector;` run in SQL editor
+- [x] `.gitignore` with `.env`, `__pycache__`, `venv/`, `node_modules/`
+- [x] `.env.example` committed with empty values
+- [x] Git repo initialised, first commit pushed
 
 **Verify:** `/docs` loads, `/` returns `{"status":"ok"}`, `SELECT * FROM pg_extension WHERE extname='vector';` returns a row.
 
@@ -132,7 +132,7 @@ Target: a live URL by end of Day 8. Ugly is fine. Working is not optional.
 **Build**
 - [x] `services/rag_service.py` — `search_chunks(db, doc_id, qvec, k=5)` using `ORDER BY embedding <=> CAST(:qvec AS vector)`
 - [x] `build_prompt(question, chunks)` — strict grounding template with `[Chunk N]` markers
-- [x] `services/llm_service.py` — Anthropic Claude call (`claude-sonnet-4-6`; override via `ANTHROPIC_MODEL`)
+- [x] `services/llm_service.py` — OpenAI chat call (`gpt-4o-mini`; override via `OPENAI_MODEL`)
 - [x] `models/chat.py` — `chat_sessions` + `chat_messages` (`role`, `content`, `source_chunks` JSONB)
 - [x] `routes/chat.py` — `POST /chat/ask`
 
@@ -238,11 +238,11 @@ Everyone's project ends at Day 8. This is the half that gets you the offer.
 
 **Build**
 - [ ] Choose 3 PDFs of different character (a paper, a manual, a report)
-- [ ] `eval/dataset.json` — **25 questions**, each with `question`, `expected_page`, `notes`
+- [ ] `eval/dataset.json` — **25 questions**, each with `question`, `expected_page`, `notes` *(partial: 16 questions on 1 PDF so far)*
 - [ ] Cover the hard cases too: exact terms/numbers, questions the docs can't answer, follow-ups
-- [ ] `eval/run_eval.py` — runs each question through retrieval, checks whether `expected_page` appears in top-k
-- [ ] Report **hit@1, hit@3, hit@5** and mean latency
-- [ ] Record your baseline in `eval/RESULTS.md`
+- [x] `eval/run_eval.py` — runs each question through retrieval, checks whether `expected_page` appears in top-k
+- [x] Report **hit@1, hit@3, hit@5** and mean latency
+- [x] Record your baseline in `eval/RESULTS.md`
 
 > ✍️ **Write this script yourself, or read every line twice.** It is the piece you'll be questioned on hardest — and the piece that proves you think like an engineer.
 
@@ -262,13 +262,13 @@ Everyone's project ends at Day 8. This is the half that gets you the offer.
 - **Reciprocal Rank Fusion:** `score = Σ 1/(k + rank)`, k=60 — combines ranked lists without needing comparable scores
 
 **Build**
-- [ ] Add `tsv` column: `ALTER TABLE document_chunks ADD COLUMN tsv tsvector GENERATED ALWAYS AS (to_tsvector('english', chunk_text)) STORED;`
-- [ ] GIN index on `tsv`
-- [ ] `keyword_search(db, doc_id, query, k=20)` using `ts_rank`
-- [ ] `reciprocal_rank_fusion(dense_results, sparse_results, k=60)` — ~15 lines
-- [ ] `hybrid_search()` — 20 dense + 20 sparse → RRF → top 5
-- [ ] Feature-flag it so you can A/B against baseline
-- [ ] **Rerun the eval. Record the new number.**
+- [x] Add `tsv` column: `ALTER TABLE document_chunks ADD COLUMN tsv tsvector GENERATED ALWAYS AS (to_tsvector('english', chunk_text)) STORED;`
+- [x] GIN index on `tsv`
+- [x] `keyword_search(db, doc_id, query, k=20)` using `ts_rank`
+- [x] `reciprocal_rank_fusion(dense_results, sparse_results, k=60)` — ~15 lines
+- [x] `hybrid_search()` — 20 dense + 20 sparse → RRF → top 5
+- [ ] Feature-flag it so you can A/B against baseline *(partial: eval `--mode` gives A/B; no runtime flag in the API)*
+- [x] **Rerun the eval. Record the new number.**
 
 **Verify:** Hit@5 improves (expect +8–20 points). Confirm a query with an exact term or number that previously failed now succeeds.
 
@@ -286,12 +286,12 @@ Everyone's project ends at Day 8. This is the half that gets you the offer.
 - The latency/quality trade-off you're consciously accepting
 
 **Build**
-- [ ] Install reranker: `CrossEncoder("BAAI/bge-reranker-base")` (or `ms-marco-MiniLM-L-6-v2` if memory is tight)
-- [ ] `rerank(question, chunks, top_n=5)` — score each pair, sort, truncate
-- [ ] Pipeline: hybrid retrieve **20** → rerank → **top 5** → LLM
-- [ ] Measure added latency, log it
-- [ ] **Rerun the eval. Record the final number.**
-- [ ] Complete the results table: `baseline → +hybrid → +reranker`
+- [x] Install reranker: `CrossEncoder("BAAI/bge-reranker-base")` (or `ms-marco-MiniLM-L-6-v2` if memory is tight)
+- [x] `rerank(question, chunks, top_n=5)` — score each pair, sort, truncate
+- [x] Pipeline: hybrid retrieve **20** → rerank → **top 5** → LLM
+- [ ] Measure added latency, log it *(partial: measured in eval — ~6.7 s/query on CPU — not logged in the API)*
+- [x] **Rerun the eval. Record the final number.**
+- [x] Complete the results table: `baseline → +hybrid → +reranker`
 
 > If the reranker blows your free-tier memory, keep hybrid search and document the reranker as measured-locally future work. Still a strong story — just be honest about it.
 

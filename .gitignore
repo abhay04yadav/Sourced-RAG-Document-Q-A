@@ -27,7 +27,7 @@ dist/
 # Uploads and local artifacts
 uploads/
 *.pdf
-!eval/**
+!eval/**/*.pdf
 
 # OS / IDE
 .DS_Store

@@ -44,21 +44,27 @@ def process_document(document_id: uuid.UUID) -> None:
             overlap=settings.CHUNK_OVERLAP,
         )
 
-        if chunk_dicts:
-            # Passages are embedded without the query instruction prefix.
-            embeddings = embed_many([c["chunk_text"] for c in chunk_dicts])
-            for index, (item, embedding) in enumerate(zip(chunk_dicts, embeddings, strict=True)):
-                db.add(
-                    Chunk(
-                        document_id=document_id,
-                        chunk_text=item["chunk_text"],
-                        chunk_index=index,
-                        page_number=item["page_number"],
-                        token_count=item["token_count"],
-                        is_toc=bool(item.get("is_toc", False)),
-                        embedding=embedding,
-                    )
+        # A 'ready' doc with zero chunks can only ever refuse — fail loudly instead.
+        if not chunk_dicts:
+            raise ValueError(
+                "No extractable text found in this PDF "
+                "(scanned/image-only PDFs need OCR, which is not supported)."
+            )
+
+        # Passages are embedded without the query instruction prefix.
+        embeddings = embed_many([c["chunk_text"] for c in chunk_dicts])
+        for index, (item, embedding) in enumerate(zip(chunk_dicts, embeddings, strict=True)):
+            db.add(
+                Chunk(
+                    document_id=document_id,
+                    chunk_text=item["chunk_text"],
+                    chunk_index=index,
+                    page_number=item["page_number"],
+                    token_count=item["token_count"],
+                    is_toc=bool(item.get("is_toc", False)),
+                    embedding=embedding,
                 )
+            )
 
         doc.page_count = len(pages)
         doc.total_chunks = len(chunk_dicts)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from redis.exceptions import RedisError
 from sqlalchemy.orm import Session, joinedload
 
 from api.deps import get_current_user
@@ -110,6 +111,11 @@ def ask(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
         ) from exc
+    except RedisError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Redis unavailable: {exc}",
+        ) from exc
 
     # 4. Resolve / create session
     if body.session_id is not None:
@@ -134,7 +140,7 @@ def ask(
     # 5. Answer cache
     try:
         cached = get_answer_cache(body.document_id, body.question)
-    except RuntimeError as exc:
+    except (RuntimeError, RedisError) as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),

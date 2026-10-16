@@ -57,6 +57,9 @@ def _resolve_redis_url() -> str:
     for raw in candidates:
         url = (raw or "").strip().strip('"').strip("'")
         if url:
+            # Upstash only accepts TLS; plain redis:// gets "Connection closed by server".
+            if url.startswith("redis://") and ".upstash.io" in url:
+                url = "rediss://" + url[len("redis://"):]
             return url
     return ""
 
@@ -110,7 +113,9 @@ def _answer_key(doc_id: uuid.UUID, question: str) -> str:
 
 
 def _embed_key(question: str) -> str:
-    return f"embed:{sha256_hex(normalize_question(question))}"
+    # Model name is part of the key so switching models never serves stale vectors.
+    model = sha256_hex(settings.EMBEDDING_MODEL_NAME)[:12]
+    return f"embed:{model}:{sha256_hex(normalize_question(question))}"
 
 
 def get_answer_cache(doc_id: uuid.UUID, question: str) -> dict[str, Any] | None:
