@@ -18,10 +18,10 @@ if TYPE_CHECKING:
 
 class Chunk(Base):
     """
-    One text chunk from a single PDF page.
+    One text chunk; may span pages within a section.
 
-    Chunks never span pages — page_number is required for Day 6 citations.
-    embedding is a 384-dim vector from all-MiniLM-L6-v2 (Day 4).
+    page_number..page_end is the page range the chunk covers (used for citations).
+    embedding is a 384-dim vector (BGE-small).
     """
 
     __tablename__ = "document_chunks"
@@ -40,6 +40,7 @@ class Chunk(Base):
     chunk_text: Mapped[str] = mapped_column(Text, nullable=False)
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     page_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    page_end: Mapped[int] = mapped_column(Integer, nullable=False)
     token_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     # True when the chunk comes from a table-of-contents page; down-weighted at retrieval.
     is_toc: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

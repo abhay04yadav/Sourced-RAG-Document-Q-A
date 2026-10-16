@@ -20,6 +20,8 @@ class SourceOut(BaseModel):
 
     chunk_index: int
     page_number: int
+    # None only for answers cached/persisted before page ranges existed.
+    page_end: int | None = None
     chunk_text: str
 
 

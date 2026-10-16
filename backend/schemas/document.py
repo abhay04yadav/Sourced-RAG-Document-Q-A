@@ -14,6 +14,7 @@ class ChunkOut(BaseModel):
     id: uuid.UUID
     chunk_index: int
     page_number: int
+    page_end: int
     token_count: int
     chunk_text: str
 

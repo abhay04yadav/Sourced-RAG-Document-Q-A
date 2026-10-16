@@ -395,4 +395,15 @@ Bugs hit while verifying:
 - **Upstash `redis://` → "Connection closed by server".** Upstash requires TLS (`rediss://`). Fixed in `.env`, and `redis_client` now upgrades `*.upstash.io` URLs automatically.
 - **`uvicorn.exe` fails silently** because the em dash (—) in the repo path breaks pip's exe launchers. Use `venv\Scripts\python.exe -m uvicorn main:app --reload`.
 
-Known limitation spotted: the section-aware chunker can merge short pages into one chunk, and the chunk keeps its *starting* page number. A fact from page 2 can therefore be cited as page 1 on small docs.
+
+## Citation page ranges (2026-10-16)
+
+**Bug:** the section-aware chunker lets chunks span pages, but each chunk stored only the page it *started* on. On the Harry Potter PDF, **1,676 of 1,682 chunks cross a page break**, so most citations under-reported where the text came from. In a small 2-page test doc, a page-2 fact was cited as "page 1".
+
+**Fix:** a new `document_chunks.page_end` column. The chunker records the start and end page of each window, the prompt shows `(pages 3-4)`, the API returns `page_end`, and the UI shows "Pages 3–4". Re-chunking per page would have fixed this too, but it would have undone the cross-page retrieval gains measured in `eval/RESULTS.md`.
+
+**Migration:** `backend\venv\Scripts\python.exe backend\scripts\run_migrate_page_end.py` adds the column and backfills exact values by re-chunking stored PDFs (no re-embedding). `RAG_PIPELINE_VERSION` was bumped to 3, so cached answers without `page_end` are ignored.
+
+**Related bug:** `documents.file_path` is absolute and still pointed at the repo's old location (`D:\Sourced — …`), so reprocess returned 409 and delete left files behind. `stored_file()` now falls back to `uploads/{user_id}/{doc_id}.pdf`. Day 8's move to Supabase Storage replaces this properly.
+
+**Windows path gotcha:** the `&` in "Q&A" breaks npm's `.cmd` shims. Build with `node node_modules/vite/bin/vite.js build`, or move the repo to a path without `&` or `—`.

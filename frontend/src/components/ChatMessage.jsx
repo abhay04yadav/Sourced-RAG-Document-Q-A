@@ -1,5 +1,12 @@
 import { useState } from "react";
 
+/** "Page 3", or "Pages 3–4" when the chunk spans a page break. */
+function pageLabel({ page_number, page_end }) {
+  return page_end && page_end !== page_number
+    ? `Pages ${page_number}–${page_end}`
+    : `Page ${page_number}`;
+}
+
 /**
  * Chat bubble with optional expandable citations (page + chunk text).
  */
@@ -26,7 +33,7 @@ export default function ChatMessage({ role, content, sources }) {
               <ul className="citation-list">
                 {citationList.map((s, i) => (
                   <li key={`${s.chunk_index}-${i}`}>
-                    <strong>Page {s.page_number}</strong>
+                    <strong>{pageLabel(s)}</strong>
                     {typeof s.chunk_index === "number" && (
                       <span className="muted"> · chunk {s.chunk_index}</span>
                     )}

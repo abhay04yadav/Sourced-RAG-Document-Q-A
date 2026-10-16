@@ -22,7 +22,7 @@ from core.config import settings
 # Load once per process — heavy init, do not move into rerank().
 model = CrossEncoder(settings.RERANKER_MODEL_NAME)
 
-_SELECT_COLS = "id, chunk_text, chunk_index, page_number, token_count, is_toc"
+_SELECT_COLS = "id, chunk_text, chunk_index, page_number, page_end, token_count, is_toc"
 
 
 def rerank(

@@ -197,6 +197,7 @@ def ask(
         SourceOut(
             chunk_index=int(c["chunk_index"]),
             page_number=int(c["page_number"]),
+            page_end=int(c["page_end"]),
             chunk_text=str(c["chunk_text"]),
         )
         for c in chunks

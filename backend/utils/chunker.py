@@ -7,7 +7,8 @@ not torn apart), but never merges across a detected chapter/heading break.
 
 Each output chunk keeps:
 - chunk_text: the window text
-- page_number: the page the window *starts* on (used for citations)
+- page_number: the page the window *starts* on
+- page_end: the page the window *ends* on (citations show a range when they differ)
 - token_count: ~0.75 words-per-token estimate
 - is_toc: True when the chunk comes from a table-of-contents-like page/section
 """
@@ -66,7 +67,7 @@ def chunk_pages(
     Build section-aware sliding-window chunks from (page_number, text) pages.
 
     Windows slide across page boundaries but reset at detected headings. Each
-    chunk records the page its first word came from. Empty pages contribute no
+    chunk records the pages its first and last words came from. Empty pages contribute no
     text. Overlap applies within a section only.
     """
     if size <= 0:
@@ -122,6 +123,7 @@ def chunk_pages(
                 {
                     "chunk_text": chunk_text,
                     "page_number": window[0][0],
+                    "page_end": window[-1][0],
                     "token_count": estimate_token_count(chunk_text),
                     "is_toc": is_toc,
                 }

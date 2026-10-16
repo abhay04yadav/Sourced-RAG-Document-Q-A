@@ -151,7 +151,7 @@ class Settings(BaseSettings):
         description="CrossEncoder model id for retrieve-then-rerank",
     )
     RAG_PIPELINE_VERSION: int = Field(
-        default=2,
+        default=3,
         description="Bumped when retrieval changes; part of the answer-cache key to invalidate stale answers",
     )
 

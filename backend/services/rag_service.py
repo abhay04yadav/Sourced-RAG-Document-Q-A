@@ -25,7 +25,7 @@ from core.config import settings
 REFUSAL_MESSAGE = "I don't have that information in the uploaded document."
 
 # Columns selected for every retrieval path so downstream stages share a shape.
-_SELECT_COLS = "id, chunk_text, chunk_index, page_number, token_count, is_toc"
+_SELECT_COLS = "id, chunk_text, chunk_index, page_number, page_end, token_count, is_toc"
 
 
 def _vector_literal(qvec: list[float]) -> str:
@@ -161,6 +161,13 @@ def search_chunks(
     return dense_search(db, doc_id, qvec, k)
 
 
+def page_label(chunk: dict[str, Any]) -> str:
+    """'page 3', or 'pages 3-4' for a chunk that spans a page break."""
+    start = chunk["page_number"]
+    end = chunk.get("page_end") or start
+    return f"page {start}" if end == start else f"pages {start}-{end}"
+
+
 def build_prompt(question: str, chunks: list[dict[str, Any]]) -> str:
     """
     Build a strict grounding prompt with [Chunk N] markers.
@@ -173,9 +180,8 @@ def build_prompt(question: str, chunks: list[dict[str, Any]]) -> str:
         parts: list[str] = []
         for chunk in chunks:
             idx = chunk["chunk_index"]
-            page = chunk["page_number"]
             text_body = chunk["chunk_text"]
-            parts.append(f"[Chunk {idx}] (page {page}):\n{text_body}")
+            parts.append(f"[Chunk {idx}] ({page_label(chunk)}):\n{text_body}")
         context = "\n\n".join(parts)
 
     return (

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import uuid
-from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import (
@@ -26,7 +25,7 @@ from core.database import get_db
 from models.document import Document
 from models.user import User
 from schemas.document import DocumentDetail, DocumentOut
-from services.document_service import process_document
+from services.document_service import process_document, stored_file
 
 router = APIRouter()
 
@@ -143,7 +142,7 @@ def reprocess_document(
     """
     doc = _get_owned_document(db, document_id, current_user)
 
-    if not Path(doc.file_path).exists():
+    if not stored_file(doc).exists():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Original file is missing on disk; re-upload required",
@@ -207,7 +206,7 @@ def delete_document(
     Supabase statement_timeout on large PDFs (e.g. Harry Potter omnibus).
     """
     doc = _get_owned_document(db, document_id, current_user)
-    file_path = Path(doc.file_path)
+    file_path = stored_file(doc)
     doc_id = doc.id
 
     # Detach so the ORM does not try to sync cascade deletes row-by-row.

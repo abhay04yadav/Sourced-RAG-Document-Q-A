@@ -16,6 +16,19 @@ from utils.chunker import chunk_pages
 from utils.pdf_parser import extract_pages
 
 
+def stored_file(doc: Document) -> Path:
+    """
+    Locate a document's PDF on disk.
+
+    file_path is absolute and goes stale if the repo moves, so fall back to the
+    canonical uploads/{user_id}/{doc_id}.pdf layout under the current UPLOAD_DIR.
+    """
+    path = Path(doc.file_path)
+    if path.exists():
+        return path
+    return settings.upload_path / str(doc.user_id) / f"{doc.id}.pdf"
+
+
 def process_document(document_id: uuid.UUID) -> None:
     """
     Process one uploaded PDF in a fresh DB session.
@@ -29,7 +42,7 @@ def process_document(document_id: uuid.UUID) -> None:
         if doc is None:
             return
 
-        path = Path(doc.file_path)
+        path = stored_file(doc)
         if not path.exists():
             raise FileNotFoundError(f"Uploaded file missing: {path}")
 
@@ -60,6 +73,7 @@ def process_document(document_id: uuid.UUID) -> None:
                     chunk_text=item["chunk_text"],
                     chunk_index=index,
                     page_number=item["page_number"],
+                    page_end=item["page_end"],
                     token_count=item["token_count"],
                     is_toc=bool(item.get("is_toc", False)),
                     embedding=embedding,
