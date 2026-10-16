@@ -40,3 +40,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Downloaded embedding model files (fastembed)
+backend/.model_cache/

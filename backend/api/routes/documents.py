@@ -25,7 +25,8 @@ from core.database import get_db
 from models.document import Document
 from models.user import User
 from schemas.document import DocumentDetail, DocumentOut
-from services.document_service import process_document, stored_file
+from services.document_service import process_document
+from services.storage import StorageError, delete_pdf, pdf_exists, save_pdf
 
 router = APIRouter()
 
@@ -106,16 +107,19 @@ async def upload_document(
     _validate_pdf_upload(file, data)
 
     doc_id = uuid.uuid4()
-    user_dir = settings.upload_path / str(current_user.id)
-    user_dir.mkdir(parents=True, exist_ok=True)
-    dest = user_dir / f"{doc_id}.pdf"
-    dest.write_bytes(data)
+    try:
+        file_path = save_pdf(current_user.id, doc_id, data)
+    except StorageError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
 
     document = Document(
         id=doc_id,
         user_id=current_user.id,
         filename=file.filename or f"{doc_id}.pdf",
-        file_path=str(dest),
+        file_path=file_path,
         status="processing",
     )
     db.add(document)
@@ -142,7 +146,7 @@ def reprocess_document(
     """
     doc = _get_owned_document(db, document_id, current_user)
 
-    if not stored_file(doc).exists():
+    if not pdf_exists(doc):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Original file is missing on disk; re-upload required",
@@ -206,7 +210,6 @@ def delete_document(
     Supabase statement_timeout on large PDFs (e.g. Harry Potter omnibus).
     """
     doc = _get_owned_document(db, document_id, current_user)
-    file_path = stored_file(doc)
     doc_id = doc.id
 
     # Detach so the ORM does not try to sync cascade deletes row-by-row.
@@ -232,5 +235,4 @@ def delete_document(
             detail=f"Failed to delete document: {exc}",
         ) from exc
 
-    if file_path.exists():
-        file_path.unlink(missing_ok=True)
+    delete_pdf(doc)

@@ -71,6 +71,24 @@ class Settings(BaseSettings):
         default=20_971_520,
         description="Maximum upload size in bytes (default 20 MB)",
     )
+    # Day 8 — where PDFs live. Local disk is wiped on every deploy/restart on
+    # Render-style hosts, so production uses Supabase Storage.
+    STORAGE_BACKEND: str = Field(
+        default="local",
+        description="'local' (UPLOAD_DIR on disk) or 'supabase' (Supabase Storage bucket)",
+    )
+    SUPABASE_URL: str = Field(
+        default="",
+        description="Supabase project URL, e.g. https://<ref>.supabase.co",
+    )
+    SUPABASE_SERVICE_KEY: str = Field(
+        default="",
+        description="Supabase service_role key (server-side only; never ship to the browser)",
+    )
+    SUPABASE_BUCKET: str = Field(
+        default="documents",
+        description="Private Supabase Storage bucket for uploaded PDFs",
+    )
     # Section-aware chunking (word windows across pages, within a section)
     CHUNK_SIZE: int = Field(
         default=800,
@@ -84,7 +102,11 @@ class Settings(BaseSettings):
     # Day 4 — embeddings (must match Vector(384) column)
     EMBEDDING_MODEL_NAME: str = Field(
         default="BAAI/bge-small-en-v1.5",
-        description="SentenceTransformer model id (384-dim output)",
+        description="Embedding model id (384-dim output), run via fastembed/ONNX",
+    )
+    EMBEDDING_CACHE_DIR: str = Field(
+        default="",
+        description="Where fastembed stores model files; empty = backend/.model_cache",
     )
     EMBEDDING_DIM: int = Field(
         default=384,
@@ -149,6 +171,10 @@ class Settings(BaseSettings):
     RERANKER_MODEL_NAME: str = Field(
         default="cross-encoder/ms-marco-MiniLM-L-6-v2",
         description="CrossEncoder model id for retrieve-then-rerank",
+    )
+    RERANK_ENABLED: bool = Field(
+        default=True,
+        description="Cross-encoder rerank needs torch (~1 GB RAM); off on free-tier hosting",
     )
     RAG_PIPELINE_VERSION: int = Field(
         default=3,

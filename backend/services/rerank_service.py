@@ -5,7 +5,9 @@ Retrieve-then-rerank: hybrid search casts a cheap wide net; the cross-encoder
 scores each (question, chunk) pair jointly (far more accurate than the
 bi-encoder used for retrieval) but is too slow to run over the whole corpus.
 
-The model is loaded once at import to avoid per-request load cost.
+The model is loaded once at import to avoid per-request load cost. With
+RERANK_ENABLED=false (free-tier production) it is never loaded — torch is not
+even imported — and rerank() keeps the hybrid RRF order instead.
 """
 
 from __future__ import annotations
@@ -13,14 +15,17 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from sentence_transformers import CrossEncoder
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from core.config import settings
 
 # Load once per process — heavy init, do not move into rerank().
-model = CrossEncoder(settings.RERANKER_MODEL_NAME)
+model = None
+if settings.RERANK_ENABLED:
+    from sentence_transformers import CrossEncoder  # local-only dependency (torch)
+
+    model = CrossEncoder(settings.RERANKER_MODEL_NAME)
 
 _SELECT_COLS = "id, chunk_text, chunk_index, page_number, page_end, token_count, is_toc"
 
@@ -30,10 +35,17 @@ def rerank(
     chunks: list[dict[str, Any]],
     top_n: int | None = None,
 ) -> list[dict[str, Any]]:
-    """Score (question, chunk) pairs with the cross-encoder; return top_n by score."""
+    """
+    Score (question, chunk) pairs with the cross-encoder; return top_n by score.
+
+    When reranking is disabled, returns the first top_n chunks in their incoming
+    (RRF-fused) order.
+    """
     if not chunks:
         return []
     top_n = top_n if top_n is not None else settings.RAG_CONTEXT_K
+    if model is None:
+        return chunks[:top_n]
 
     pairs = [(question, c["chunk_text"]) for c in chunks]
     scores = model.predict(pairs)

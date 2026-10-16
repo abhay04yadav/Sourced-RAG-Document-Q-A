@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import uuid
-from pathlib import Path
-
 from sqlalchemy import delete
 
 from core.config import settings
@@ -12,21 +10,9 @@ from core.database import SessionLocal
 from models.chunk import Chunk
 from models.document import Document
 from services.embedding_service import embed_many
+from services.storage import read_pdf
 from utils.chunker import chunk_pages
 from utils.pdf_parser import extract_pages
-
-
-def stored_file(doc: Document) -> Path:
-    """
-    Locate a document's PDF on disk.
-
-    file_path is absolute and goes stale if the repo moves, so fall back to the
-    canonical uploads/{user_id}/{doc_id}.pdf layout under the current UPLOAD_DIR.
-    """
-    path = Path(doc.file_path)
-    if path.exists():
-        return path
-    return settings.upload_path / str(doc.user_id) / f"{doc.id}.pdf"
 
 
 def process_document(document_id: uuid.UUID) -> None:
@@ -42,15 +28,13 @@ def process_document(document_id: uuid.UUID) -> None:
         if doc is None:
             return
 
-        path = stored_file(doc)
-        if not path.exists():
-            raise FileNotFoundError(f"Uploaded file missing: {path}")
+        data = read_pdf(doc)
 
         # Idempotent: clear any prior chunks before re-insert
         db.execute(delete(Chunk).where(Chunk.document_id == document_id))
         db.flush()
 
-        pages = extract_pages(path)
+        pages = extract_pages(data)
         chunk_dicts = chunk_pages(
             pages,
             size=settings.CHUNK_SIZE,

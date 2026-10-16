@@ -90,6 +90,11 @@ def main() -> None:
     parser.add_argument("--mode", choices=["baseline", "hybrid", "full"], default="full")
     parser.add_argument("--document-id", default=None)
     args = parser.parse_args()
+    if args.mode == "full":
+        from core.config import settings
+
+        if not settings.RERANK_ENABLED:
+            raise SystemExit("--mode full needs RERANK_ENABLED=true (and sentence-transformers installed).")
 
     data = json.loads(_DATASET.read_text(encoding="utf-8"))
     questions = [q for q in data["questions"] if not q.get("unanswerable")]

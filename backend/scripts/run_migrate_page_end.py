@@ -26,7 +26,7 @@ from sqlalchemy import text
 from core.config import settings
 from core.database import engine
 from scripts.run_migrate_hybrid import _statements
-from services.document_service import stored_file
+from services.storage import local_path
 from utils.chunker import chunk_pages
 from utils.pdf_parser import extract_pages
 
@@ -38,7 +38,7 @@ def _backfill(conn) -> None:
         text("SELECT id, user_id, filename, file_path FROM documents WHERE status = 'ready'")
     ).all()
     for doc_id, user_id, filename, file_path in docs:
-        file_path = stored_file(SimpleNamespace(id=doc_id, user_id=user_id, file_path=file_path))
+        file_path = local_path(SimpleNamespace(id=doc_id, user_id=user_id, file_path=file_path))
         if not file_path.exists():
             print(f"  skip {filename}: file missing")
             continue

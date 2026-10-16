@@ -1,5 +1,9 @@
 """
-Embedding helpers using SentenceTransformer (BGE-small, 384-dim).
+Embedding helpers using BGE-small (384-dim) via fastembed (ONNX Runtime).
+
+fastembed runs the same BAAI/bge-small-en-v1.5 weights as sentence-transformers
+(cosine 1.0000 against our stored vectors) without torch, so the API fits in a
+free-tier container. No re-embedding was needed when switching.
 
 The model is loaded once at module import so request/background paths do not
 pay load cost on every call (model init is slow and memory-heavy).
@@ -8,12 +12,19 @@ BGE-style models are asymmetric: queries get an instruction prefix, passages do
 not. Embeddings are L2-normalized so pgvector cosine distance (<=>) behaves well.
 """
 
-from sentence_transformers import SentenceTransformer
+from pathlib import Path
+
+import numpy as np
+from fastembed import TextEmbedding
 
 from core.config import settings
 
+_CACHE_DIR = settings.EMBEDDING_CACHE_DIR or str(
+    Path(__file__).resolve().parents[1] / ".model_cache"
+)
+
 # Load once per process — do not move inside embed_* functions.
-model = SentenceTransformer(settings.EMBEDDING_MODEL_NAME)
+model = TextEmbedding(settings.EMBEDDING_MODEL_NAME, cache_dir=_CACHE_DIR)
 
 
 def embed_many(texts: list[str], is_query: bool = False) -> list[list[float]]:
@@ -31,12 +42,8 @@ def embed_many(texts: list[str], is_query: bool = False) -> list[list[float]]:
         prefix = settings.EMBEDDING_QUERY_INSTRUCTION
         prepared = [f"{prefix}{t}" for t in texts]
 
-    encoded = model.encode(
-        prepared,
-        convert_to_numpy=True,
-        normalize_embeddings=True,
-        show_progress_bar=False,
-    )
+    encoded = np.array(list(model.embed(prepared)), dtype=np.float32)
+    encoded /= np.linalg.norm(encoded, axis=1, keepdims=True)
     vectors = [row.tolist() for row in encoded]
 
     dim = len(vectors[0]) if vectors else 0
